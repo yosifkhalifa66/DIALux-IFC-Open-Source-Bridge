@@ -1,0 +1,27 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+
+# Build artifacts
+build/
+dist/
+release/
+*.spec
+
+# Exports cache and generated test files
+exports/
+tests/*.obj
+tests/*.mtl
+tests/*.dxf
+tests/sample_office.ifc
+
+# IDE
+.idea/
+.vscode/
+*.swp
