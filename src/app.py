@@ -356,32 +356,49 @@ class DialuxIFCApp(ctk.CTk, TkinterDnD.DnDWrapper):
         self.drop_label.configure(text=f"⏳ Loading {os.path.basename(file_path)}...")
         self.status_label.configure(text="Reading IFC schema, hierarchy, and building storeys...")
         self.progress_bar.set(0.15)
+        logger.info(f"Starting to load IFC: {file_path}")
         
         def worker():
             try:
+                logger.info("Worker thread started for IFC loading")
                 inspector = IfcModelInspector(file_path)
                 inspector.load()
+                logger.info("IFC load completed successfully")
                 self.inspector = inspector
                 self.after(0, self._on_ifc_loaded_success)
             except Exception as e:
                 logger.error(f"Failed to load IFC: {e}", exc_info=True)
-                self.after(0, lambda: self._on_ifc_loaded_error(str(e)))
+                err_msg = str(e)
+                self.after(0, lambda msg=err_msg: self._on_ifc_loaded_error(msg))
 
-        threading.Thread(target=worker, daemon=True).start()
+        t = threading.Thread(target=worker, daemon=True)
+        t.start()
+        logger.info(f"Started worker thread {t.name}")
 
     def _on_ifc_loaded_success(self):
-        self.is_processing = False
-        self.progress_bar.set(0)
-        filename = os.path.basename(self.current_ifc_path)
-        file_size_mb = os.path.getsize(self.current_ifc_path) / (1024 * 1024)
-        
-        self.drop_label.configure(text=f"✅ {filename}")
-        self.drop_sublabel.configure(text=f"Size: {file_size_mb:.2f} MB | Drag another file to replace")
-        self.file_info_label.configure(text=f"{self.inspector.total_elements_count} BIM elements")
-        self.status_label.configure(text=f"Loaded: {self.inspector.project_name} ({self.inspector.schema})")
-        
-        self._populate_model_inspector()
-        self._check_dialux_status()
+        try:
+            self.is_processing = False
+            self.progress_bar.set(0)
+            filename = os.path.basename(self.current_ifc_path)
+            try:
+                file_size_mb = os.path.getsize(self.current_ifc_path) / (1024 * 1024)
+            except Exception:
+                file_size_mb = 0.0
+            
+            self.drop_label.configure(text=f"✅ {filename}")
+            self.drop_sublabel.configure(text=f"Size: {file_size_mb:.2f} MB | Drag another file to replace")
+            if self.inspector:
+                self.file_info_label.configure(text=f"{self.inspector.total_elements_count} BIM elements")
+                self.status_label.configure(text=f"Loaded: {self.inspector.project_name} ({self.inspector.schema})")
+            else:
+                self.file_info_label.configure(text="")
+                self.status_label.configure(text="Loaded IFC file")
+            
+            self._populate_model_inspector()
+            self._check_dialux_status()
+        except Exception as e:
+            logger.error(f"Error in _on_ifc_loaded_success: {e}", exc_info=True)
+            self.status_label.configure(text=f"Error updating UI: {e}")
 
     def _on_ifc_loaded_error(self, err_msg: str):
         self.is_processing = False
@@ -393,56 +410,70 @@ class DialuxIFCApp(ctk.CTk, TkinterDnD.DnDWrapper):
 
     def _populate_model_inspector(self):
         """Fill the left panel with parsed metadata, storeys, and element filters."""
-        for widget in self.model_panel.winfo_children():
-            widget.destroy()
+        try:
+            for widget in self.model_panel.winfo_children():
+                widget.destroy()
+                
+            if not self.inspector:
+                return
+            summary = self.inspector.get_summary()
             
-        summary = self.inspector.get_summary()
-        
-        # Project Info Card
-        card = ctk.CTkFrame(self.model_panel, corner_radius=8, fg_color=("gray85", "#252932"))
-        card.pack(fill="x", padx=4, pady=6)
-        
-        ctk.CTkLabel(card, text=f"🏢 {summary['project_name']}", font=ctk.CTkFont(size=14, weight="bold"), anchor="w").pack(fill="x", padx=10, pady=(8, 2))
-        ctk.CTkLabel(card, text=f"Tool: {summary['authoring_app']}", font=ctk.CTkFont(size=11), text_color="gray", anchor="w").pack(fill="x", padx=10, pady=1)
-        ctk.CTkLabel(card, text=f"Schema: {summary['schema']} | Length Unit: {summary['detected_unit']}", font=ctk.CTkFont(size=11), text_color="#38bdf8", anchor="w").pack(fill="x", padx=10, pady=(1, 8))
-        
-        # Storeys Section
-        if summary["storeys"]:
-            storey_card = ctk.CTkFrame(self.model_panel, corner_radius=8, fg_color=("gray85", "#252932"))
-            storey_card.pack(fill="x", padx=4, pady=6)
+            # Project Info Card
+            card = ctk.CTkFrame(self.model_panel, corner_radius=8, fg_color=("gray85", "#252932"))
+            card.pack(fill="x", padx=4, pady=6)
             
-            ctk.CTkLabel(storey_card, text="📍 Building Storeys", font=ctk.CTkFont(size=13, weight="bold"), anchor="w").pack(fill="x", padx=10, pady=(8, 4))
+            ctk.CTkLabel(card, text=f"🏢 {summary.get('project_name', 'Unknown')}", font=ctk.CTkFont(size=14, weight="bold"), anchor="w").pack(fill="x", padx=10, pady=(8, 2))
+            ctk.CTkLabel(card, text=f"Tool: {summary.get('authoring_app', 'Unknown')}", font=ctk.CTkFont(size=11), text_color="gray", anchor="w").pack(fill="x", padx=10, pady=1)
+            ctk.CTkLabel(card, text=f"Schema: {summary.get('schema', 'IFC')} | Length Unit: {summary.get('detected_unit', 'METERS')}", font=ctk.CTkFont(size=11), text_color="#38bdf8", anchor="w").pack(fill="x", padx=10, pady=(1, 8))
             
-            self.storey_vars.clear()
-            for s in summary["storeys"]:
-                name = s["name"]
-                elev = s["elevation"]
-                var = ctk.BooleanVar(value=True)
-                self.storey_vars[name] = var
-                chk = ctk.CTkCheckBox(storey_card, text=f"{name} (Elev: {elev:.2f}m)", variable=var, font=ctk.CTkFont(size=11))
-                chk.pack(anchor="w", padx=14, pady=2)
-            ctk.CTkLabel(storey_card, text="").pack(pady=2)
+            # Storeys Section
+            storeys = summary.get("storeys") or []
+            if storeys:
+                storey_card = ctk.CTkFrame(self.model_panel, corner_radius=8, fg_color=("gray85", "#252932"))
+                storey_card.pack(fill="x", padx=4, pady=6)
+                
+                ctk.CTkLabel(storey_card, text="📍 Building Storeys", font=ctk.CTkFont(size=13, weight="bold"), anchor="w").pack(fill="x", padx=10, pady=(8, 4))
+                
+                self.storey_vars.clear()
+                for s in storeys:
+                    try:
+                        name = s.get("name") or "Storey"
+                        elev = s.get("elevation", 0.0)
+                        var = ctk.BooleanVar(value=True)
+                        self.storey_vars[name] = var
+                        chk = ctk.CTkCheckBox(storey_card, text=f"{name} (Elev: {elev:.2f}m)", variable=var, font=ctk.CTkFont(size=11))
+                        chk.pack(anchor="w", padx=14, pady=2)
+                    except Exception:
+                        continue
+                ctk.CTkLabel(storey_card, text="").pack(pady=2)
+                
+            # Category Filters Section
+            cat_card = ctk.CTkFrame(self.model_panel, corner_radius=8, fg_color=("gray85", "#252932"))
+            cat_card.pack(fill="x", padx=4, pady=6)
             
-        # Category Filters Section
-        cat_card = ctk.CTkFrame(self.model_panel, corner_radius=8, fg_color=("gray85", "#252932"))
-        cat_card.pack(fill="x", padx=4, pady=6)
-        
-        ctk.CTkLabel(cat_card, text="🧱 Architectural Categories", font=ctk.CTkFont(size=13, weight="bold"), anchor="w").pack(fill="x", padx=10, pady=(8, 4))
-        
-        # Default active categories: building envelope + openings + structural
-        default_active = {"IfcWall", "IfcWallStandardCase", "IfcSlab", "IfcRoof", "IfcDoor", "IfcWindow", "IfcCurtainWall", "IfcColumn", "IfcBeam", "IfcStair"}
-        
-        self.category_vars.clear()
-        for cls_name, count in summary["category_counts"].items():
-            if count == 0:
-                continue
-            is_checked = cls_name in default_active
-            var = ctk.BooleanVar(value=is_checked)
-            self.category_vars[cls_name] = var
-            clean_name = cls_name.replace("Ifc", "")
-            chk = ctk.CTkCheckBox(cat_card, text=f"{clean_name} ({count})", variable=var, font=ctk.CTkFont(size=11))
-            chk.pack(anchor="w", padx=14, pady=2)
-        ctk.CTkLabel(cat_card, text="").pack(pady=2)
+            ctk.CTkLabel(cat_card, text="🧱 Architectural Categories", font=ctk.CTkFont(size=13, weight="bold"), anchor="w").pack(fill="x", padx=10, pady=(8, 4))
+            
+            # Default active categories: building envelope + openings + structural
+            default_active = {"IfcWall", "IfcWallStandardCase", "IfcSlab", "IfcRoof", "IfcDoor", "IfcWindow", "IfcCurtainWall", "IfcColumn", "IfcBeam", "IfcStair"}
+            
+            self.category_vars.clear()
+            cat_counts = summary.get("category_counts") or {}
+            for cls_name, count in cat_counts.items():
+                try:
+                    if count == 0:
+                        continue
+                    is_checked = cls_name in default_active
+                    var = ctk.BooleanVar(value=is_checked)
+                    self.category_vars[cls_name] = var
+                    clean_name = cls_name.replace("Ifc", "")
+                    chk = ctk.CTkCheckBox(cat_card, text=f"{clean_name} ({count})", variable=var, font=ctk.CTkFont(size=11))
+                    chk.pack(anchor="w", padx=14, pady=2)
+                except Exception:
+                    continue
+            ctk.CTkLabel(cat_card, text="").pack(pady=2)
+        except Exception as e:
+            logger.error(f"Error in _populate_model_inspector: {e}", exc_info=True)
+            self.status_label.configure(text=f"Error displaying model info: {e}")
 
     def _on_unit_change(self, choice):
         """Handle unit scale dropdown change."""
@@ -495,7 +526,7 @@ class DialuxIFCApp(ctk.CTk, TkinterDnD.DnDWrapper):
                 
                 def progress(cur, tot, desc):
                     pct = cur / max(tot, 1)
-                    self.after(0, lambda: self._update_progress(pct, desc))
+                    self.after(0, lambda p=pct, d=desc: self._update_progress(p, d))
                     
                 result = exporter.export(
                     output_obj_path=output_obj,
@@ -511,10 +542,11 @@ class DialuxIFCApp(ctk.CTk, TkinterDnD.DnDWrapper):
                 # Execute DIALux bridge transfer
                 bridge_result = send_to_dialux(self.last_exported_obj)
                 
-                self.after(0, lambda: self._on_send_complete(result, bridge_result))
+                self.after(0, lambda r=result, b=bridge_result: self._on_send_complete(r, b))
             except Exception as e:
                 logger.error(f"Send to DIALux failed: {e}", exc_info=True)
-                self.after(0, lambda: self._on_export_error(str(e)))
+                err_msg = str(e)
+                self.after(0, lambda msg=err_msg: self._on_export_error(msg))
 
         threading.Thread(target=worker, daemon=True).start()
 
@@ -564,7 +596,7 @@ class DialuxIFCApp(ctk.CTk, TkinterDnD.DnDWrapper):
                 
                 def progress(cur, tot, desc):
                     pct = cur / max(tot, 1)
-                    self.after(0, lambda: self._update_progress(pct, desc))
+                    self.after(0, lambda p=pct, d=desc: self._update_progress(p, d))
                     
                 res = exporter.export(
                     output_obj_path=target_path,
@@ -575,9 +607,10 @@ class DialuxIFCApp(ctk.CTk, TkinterDnD.DnDWrapper):
                     progress_callback=progress
                 )
                 self.last_exported_obj = res["obj_path"]
-                self.after(0, lambda: self._on_custom_obj_complete(res))
+                self.after(0, lambda r=res: self._on_custom_obj_complete(r))
             except Exception as e:
-                self.after(0, lambda: self._on_export_error(str(e)))
+                err_msg = str(e)
+                self.after(0, lambda msg=err_msg: self._on_export_error(msg))
 
         threading.Thread(target=worker, daemon=True).start()
 
@@ -613,7 +646,7 @@ class DialuxIFCApp(ctk.CTk, TkinterDnD.DnDWrapper):
                 
                 def progress(cur, tot, desc):
                     pct = cur / max(tot, 1)
-                    self.after(0, lambda: self._update_progress(pct, desc))
+                    self.after(0, lambda p=pct, d=desc: self._update_progress(p, d))
                     
                 res = exporter.export(
                     output_dxf_path=out_path,
@@ -622,9 +655,10 @@ class DialuxIFCApp(ctk.CTk, TkinterDnD.DnDWrapper):
                     scale_factor=scale,
                     progress_callback=progress
                 )
-                self.after(0, lambda: self._on_dxf_complete(res))
+                self.after(0, lambda r=res: self._on_dxf_complete(r))
             except Exception as e:
-                self.after(0, lambda: self._on_export_error(str(e)))
+                err_msg = str(e)
+                self.after(0, lambda msg=err_msg: self._on_export_error(msg))
 
         threading.Thread(target=worker, daemon=True).start()
 
