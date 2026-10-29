@@ -1,0 +1,60 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+    <SelfContained>true</SelfContained>
+    <UseWPF>true</UseWPF>
+    <PlatformTarget>x64</PlatformTarget>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <DialuxInstall Condition="'$(DialuxInstall)' == ''">C:\Program Files\DIAL GmbH\DIALux</DialuxInstall>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="$(DialuxInstall)\Dial.Binder.dll" Private="false" />
+    <Reference Include="$(DialuxInstall)\Dial.Dialux.ResultsInterpreter.Factory.dll" Private="false" />
+    <Reference Include="$(DialuxInstall)\Dial.MathTypes.dll" Private="false" />
+    <Reference Include="$(DialuxInstall)\Dialux.App.Core.dll" Private="false" />
+    <Reference Include="$(DialuxInstall)\Dialux.App.Utilities.dll" Private="false" />
+    <Reference Include="$(DialuxInstall)\Dialux.Classlib.dll" Private="false" />
+    <Reference Include="$(DialuxInstall)\Dialux.Classlib.Interfaces.dll" Private="false" />
+    <Reference Include="$(DialuxInstall)\Dialux.Converter.Interfaces.dll" Private="false" />
+    <Reference Include="$(DialuxInstall)\Dialux.GeometryBase.dll" Private="false" />
+    <Reference Include="$(DialuxInstall)\Dialux.GeometryFactory.dll" Private="false" />
+    <Reference Include="$(DialuxInstall)\Dialux.GeometryInitData.Interfaces.dll" Private="false" />
+    <Reference Include="$(DialuxInstall)\Dialux.GeometryRepresentationParams.dll" Private="false" />
+    <Reference Include="$(DialuxInstall)\Dialux.GeometryRepresentationParams.Interfaces.dll" Private="false" />
+    <Reference Include="$(DialuxInstall)\Dialux.InteractionFileHandling.dll" Private="false" />
+    <Reference Include="$(DialuxInstall)\Dialux.InteractionResultsHandling.dll" Private="false" />
+    <Reference Include="$(DialuxInstall)\Dialux.InteractionResultsHandling.Interfaces.dll" Private="false" />
+    <Reference Include="$(DialuxInstall)\Dialux.Import.Interfaces.dll" Private="false" />
+    <Reference Include="$(DialuxInstall)\Dialux.LuminaireDataImport.dll" Private="false" />
+    <Reference Include="$(DialuxInstall)\Dialux.LuminaireDataInterfaces.dll" Private="false" />
+    <Reference Include="$(DialuxInstall)\Dialux.LuminaireDataToolsFactory.dll" Private="false" />
+    <Reference Include="$(DialuxInstall)\Dialux.ModuleManager.dll" Private="false" />
+    <Reference Include="$(DialuxInstall)\Dialux.ModuleManager.Interfaces.dll" Private="false" />
+    <Reference Include="$(DialuxInstall)\Dialux.NormData.dll" Private="false" />
+    <Reference Include="$(DialuxInstall)\Dialux.NormData.Factory.dll" Private="false" />
+    <Reference Include="$(DialuxInstall)\Dialux.NormData.Interfaces.dll" Private="false" />
+    <Reference Include="$(DialuxInstall)\Dialux.NormData.Module.Interfaces.dll" Private="false" />
+    <Reference Include="$(DialuxInstall)\Dialux.Persistence.dll" Private="false" />
+    <Reference Include="$(DialuxInstall)\Dialux.Persistence.Factory.dll" Private="false" />
+    <Reference Include="$(DialuxInstall)\Dialux.Persistence.Interfaces.dll" Private="false" />
+    <Reference Include="$(DialuxInstall)\Dialux.Persistence.Module.Interfaces.dll" Private="false" />
+    <Reference Include="$(DialuxInstall)\Dialux.Plugin.Module.Interfaces.dll" Private="false" />
+    <Reference Include="$(DialuxInstall)\Dialux.PluginTypes.Interfaces.dll" Private="false" />
+    <Reference Include="$(DialuxInstall)\Dialux.ProjectData.Factory.dll" Private="false" />
+    <Reference Include="$(DialuxInstall)\Dialux.ProjectData.Interfaces.dll" Private="false" />
+    <Reference Include="$(DialuxInstall)\Dialux.ProjectData.Module.Interfaces.dll" Private="false" />
+    <Reference Include="$(DialuxInstall)\Dialux.ProjectData.RepresentationParams.dll" Private="false" />
+    <Reference Include="$(DialuxInstall)\Dialux.ProjectData.Utilities.dll" Private="false" />
+    <Reference Include="$(DialuxInstall)\Dialux.ProjectDataService.dll" Private="false" />
+    <Reference Include="$(DialuxInstall)\Dialux.ProjectDataService.Interfaces.dll" Private="false" />
+    <Reference Include="$(DialuxInstall)\Dialux.PropertySets.Interfaces.dll" Private="false" />
+    <Reference Include="$(DialuxInstall)\Dialux.PropertySets.Params.dll" Private="false" />
+    <Reference Include="$(DialuxInstall)\Dialux.Resources.dll" Private="false" />
+    <Reference Include="$(DialuxInstall)\Dialux.ResultsInterpreter.Interface.dll" Private="false" />
+    <Reference Include="$(DialuxInstall)\Dialux.UnifiedLuminaireData.dll" Private="false" />
+    <Reference Include="$(DialuxInstall)\System.Collections.Immutable.dll" Private="false" />
+  </ItemGroup>
+</Project>

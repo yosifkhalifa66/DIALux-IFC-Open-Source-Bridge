@@ -1,8 +1,5 @@
 @echo off
-title DIALux IFC Bridge
+setlocal
 cd /d "%~dp0"
-if exist "dist\DialuxIFCBridge\DialuxIFCBridge.exe" (
-    start "" "dist\DialuxIFCBridge\DialuxIFCBridge.exe"
-) else (
-    python main.py
-)
+py -3 main.py
+if errorlevel 1 pause

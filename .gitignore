@@ -1,27 +1,23 @@
-# Python
 __pycache__/
-*.py[cod]
-*$py.class
-*.so
-.Python
-env/
-venv/
-ENV/
-
-# Build artifacts
+*.pyc
+*.pyo
 build/
 dist/
 release/
+native/bin/
+native/obj/
 *.spec
-
-# Exports cache and generated test files
+*.egg-info/
+.env
 exports/
-tests/*.obj
-tests/*.mtl
-tests/*.dxf
-tests/sample_office.ifc
-
-# IDE
-.idea/
-.vscode/
-*.swp
+*.log
+package_status.json
+*.evo
+*.obj
+*.mtl
+*.dxf
+*.zip
+*.odt
+testdata/ifc/*.ifc
+testdata/results/
+docs/project-briefs/

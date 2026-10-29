@@ -1,129 +1,52 @@
-# ⚡ DIALux IFC Bridge
+# DIALux IFC Bridge 2.5
 
-> **Free, seamless IFC & Revit BIM import for DIALux evo without a paid subscription.**
+DIALux IFC Bridge converts selected IFC storeys, room boundaries, and represented building products into a native DIALux evo project. It also exports an OBJ/MTL reference model and audit sidecars.
 
-[![Platform](https://img.shields.io/badge/Platform-Windows-0078D6?style=flat-square&logo=windows)](https://microsoft.com)
-[![DIALux evo](https://img.shields.io/badge/DIALux_evo-Compatible-E30613?style=flat-square)](https://www.dialux.com)
-[![IFC Support](https://img.shields.io/badge/IFC-IFC2X3%20%7C%20IFC4%20%7C%20IFC4X3-blue?style=flat-square)](https://www.buildingsmart.org)
-[![Python](https://img.shields.io/badge/Python-3.11+-3776AB?style=flat-square&logo=python)](https://www.python.org)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=flat-square)](LICENSE)
+## What it produces
 
----
+- A native `.evo` project with a site, building, levels, room contours, and per-product IFC mesh objects grouped by storey.
+- A separate OBJ/MTL architectural reference model.
+- DXF room geometry and JSON sidecars for room and architecture traceability.
+- A package status manifest reporting completed steps, warnings, or errors.
 
-## 💡 Overview
+The native `.evo` creates a DIALux storey boundary contour for each selected IFC room and associates every contour with its native calculation space; the exporter checks these associations after save/reload. Represented IFC products such as walls, slabs, doors, windows, and furniture are added as separate native DIALux generic geometry mesh objects and checked after reload. Their IFC GlobalIds, types, storeys, and triangle counts are recorded in the room audit. These objects are tessellated meshes, not parametric DIALux wall/slab/window/door objects. IFC surface materials are not mapped to verified DIALux reflectance or transmittance values. IFC light-fixture geometry can be included as a mesh, but it is not a photometric DIALux luminaire and provides no imported luminaire data. Unsupported products are listed in `package_status.json`. The native adapter uses DIALux evo project data assemblies from an installed DIALux evo version compatible with the pinned API (5.14.0.5). The build does not redistribute DIALux assemblies.
 
-DIALux evo restricts direct **IFC BIM import** behind the paid *DIALux Pro* subscription. However, DIALux evo's free tier has native support for **Wavefront OBJ 3D objects** and **3D AutoCAD DXF CAD underlays**.
+## Requirements
 
-**DIALux IFC Bridge** bridges the gap. It is a standalone desktop application with a clean dark-mode UI that allows you to drag-and-drop any standard IFC file, automatically converts the building envelope, storeys, spaces, and architectural geometry into DIALux-optimized 3D models with proper real-world SI scale (Meters) and photometric reflectances, and features a **1-click "Send to DIALux"** button that transfers the model straight into DIALux evo.
+- Windows 10/11, 64 bit.
+- DIALux evo installed for native project creation.
+- The packaged build includes the .NET 8 runtime for its native adapter.
 
----
+For development, install `requirements.txt`. To create the Windows bundle, install `requirements-build.txt`, .NET SDK 8, DIALux evo, and Inno Setup 6, then run:
 
-## ✨ Features
-
-- **🎯 Drag & Drop Simplicity**: Drop any `.ifc` file directly onto the application window or use the file browser.
-- **🚀 One-Click "Send to DIALux"**:
-  - Automatically exports the geometry.
-  - Places the converted `.obj` / `.mtl` onto the Windows Clipboard in `CF_HDROP` format.
-  - Automatically activates or launches DIALux evo so you can simply press <kbd>Ctrl</kbd> + <kbd>V</kbd> or drag the file into your 3D view.
-- **📏 Automatic Unit Scaling**: Correctly detects source model length units (Millimeters, Meters, Feet, Inches) and normalizes coordinates to SI **Meters** so lighting calculations and dimensions are 100% accurate.
-- **🏢 Building Hierarchy & Storey Splitting**:
-  - Automatically detects building storeys (`IfcBuildingStorey`).
-  - Option to filter specific storeys or export individual levels separately.
-- **🧱 Category Filtering**:
-  - Selectively export: Walls, Slabs, Ceilings, Windows, Doors, Curtain Walls, Columns, Beams, Roofs, Stairs, and Spaces.
-- **💡 Photometric Material Reflectance**:
-  - Generates companion `.mtl` material definitions with standard lighting design reflectances (CIE / EN 12464-1):
-    - **Ceilings**: ~80% reflectance (clean diffuse white)
-    - **Walls**: ~75% reflectance (light gray/white)
-    - **Floors**: ~35% reflectance (medium gray)
-    - **Glazing / Windows**: Semi-transparent (transmittance ~80%)
-    - **Doors / Wood**: ~30% reflectance
-- **📐 3D DXF CAD Underlay Export**: Optional generation of 3D DXF files with `3DFACE` entities for users who prefer snapping to CAD plans.
-- **📦 Standalone Executable**: No Python or dependencies required for end users.
-
----
-
-## 🖥️ User Interface Preview
-
-```
-+--------------------------------------------------------------------------------+
-|  ⚡ DIALux IFC Bridge    Free IFC & Revit BIM Import for DIALux evo   [🟢 DIALux] |
-+--------------------------------------------------------------------------------+
-|  [==========================================================================]  |
-|  |                 📁 Drag & Drop your .IFC file here                        |  |
-|  |                        — or click to Browse —                            |  |
-|  [==========================================================================]  |
-+---------------------------------------------------+----------------------------+
-|  BIM Model Inspection                             |  Export & Transfer Settings|
-|                                                   |                            |
-|  🏢 Sample Building (Revit 2027, IFC4)            |  Unit Scale:               |
-|  Unit: Millimeters -> Auto-scaled to Meters       |  [ Automatic (from IFC) v] |
-|                                                   |                            |
-|  📍 Building Storeys                              |  Hierarchy Grouping:       |
-|  [x] Ground Floor (Elev: 0.00m)                   |  [ By Storey & Category v] |
-|  [x] Level 1 (Elev: 3.50m)                        |                            |
-|                                                   |  ------------------------- |
-|  🧱 Architectural Categories                      |  [ 🚀 Send to DIALux evo ] |
-|  [x] Walls (128)                                  |  (Copies to CF_HDROP &     |
-|  [x] Slabs & Ceilings (14)                        |   activates DIALux window) |
-|  [x] Windows (42)                                 |                            |
-|  [x] Doors (18)                                   |  [ 💾 Export OBJ As...   ] |
-|  [x] Columns (24)                                 |  [ 📐 Export 3D DXF      ] |
-|  [ ] Furniture (310)                              |  [ 📁 Open Output Folder ] |
-+---------------------------------------------------+----------------------------+
-|  [======                   ] 35% Tessellating: Wall North                      |
-+--------------------------------------------------------------------------------+
-```
-
----
-
-## 🚀 Quick Start
-
-### Option A: Run Precompiled Executable (.exe)
-1. Download `DialuxIFCBridge.exe` from the [Releases](releases) tab.
-2. Double-click `DialuxIFCBridge.exe` to launch.
-3. Drop your `.ifc` file and click **Send to DIALux**.
-
-### Option B: Run from Source
-1. Clone the repository:
-   ```bash
-   git clone https://github.com/<your-username>/dialux-ifc-drag-drop.git
-   cd dialux-ifc-drag-drop
-   ```
-2. Install Python dependencies:
-   ```bash
-   pip install -r requirements.txt
-   ```
-3. Run the application:
-   ```bash
-   python main.py
-   ```
-
----
-
-## 🛠️ Building the Standalone Executable (.exe)
-
-To compile the application into a standalone Windows binary:
-```bash
+```powershell
 python build_exe.py
 ```
-The compiled output is located in:
-`dist/DialuxIFCBridge/DialuxIFCBridge.exe`
 
----
+Set `DIALUX_INSTALL_DIR` if DIALux is installed outside its standard location. The application bundle is written to `dist/DialuxIFCBridge`; the setup executable is written to `release/` when Inno Setup is available.
 
-## 📋 Compatibility
+## Use
 
-| Software | Version | Compatibility |
-| :--- | :--- | :--- |
-| **DIALux evo** | 8.x, 9.x, 10.x, 11.x, 12.x, 13.x, 5.14+ | ✅ 100% (No Pro subscription needed) |
-| **Autodesk Revit** | 2018 - 2027 (IFC Export) | ✅ Native export supported |
-| **ArchiCAD** | 22 - 28 | ✅ Full IFC support |
-| **Tekla Structures** | All IFC exports | ✅ Supported |
-| **BlenderBIM / FreeCAD** | All versions | ✅ Supported |
+Run `main.py` from a development checkout or launch `DialuxIFCBridge.exe` from the installed bundle. Select an IFC file, review detected levels and rooms, choose an output folder, and start export. Native IFC mesh creation is enabled by default and can be turned off in BIM Conversion Settings. Keep the OBJ and MTL sidecar together if you need the separate reference model.
 
----
+After export, inspect `package_status.json` in the output folder. A `PARTIAL` status means some deliverables were not produced; warnings and error details are included in that file and the application log. Do not treat partial outputs as a complete package.
 
-## 📄 License
+## Evidence and limits
 
-This project is licensed under the [MIT License](LICENSE). Free for both commercial and personal use.
+The v2.5 build was verified with a 108-room, two-level IFC2X3 school model. Native save/reload verification confirmed 108 room contours and 2,385 generic geometry elements representing 355,942 triangles; two unsupported grid products were reported. The IFC model is not redistributed in this repository or release archive. This single corpus does not establish broad IFC compatibility or lighting-calculation parity with a manually authored DIALux project.
+
+Lighting parity requires measured data from both a manual DIALux reference and the generated DIALux project, using the same recorded luminaire, calculation, and material controls. The comparator in `tools/lighting_parity_compare.py` marks missing measurements as incomplete, rejects mismatched controls, and does not invent results. See `docs/lighting_parity_workflow.md`, `docs/lighting_parity_test_set.md`, and `experiments/` for the protocol and evidence.
+
+## Verification for this v2.5 rebuild
+
+The native adapter's two-level self-test, including a generic mesh, and the 108-room IFC project's two-level native output were saved and reload-verified. All 57 unit tests pass. The project owner manually confirmed that the v2.5 build works; visual and tessellation issues are deferred to a future version. Lighting parity remains incomplete pending matched measured DIALux runs. Parametric architectural elements, verified native material mapping, photometric luminaire import, and clean-machine installer validation remain outstanding. See `failures.md` for details.
+
+## Troubleshooting
+
+- If native project creation cannot find DIALux, install evo or set `DIALUX_INSTALL_DIR` during development/build.
+- If IFC geometry is invalid or unsupported, review the application log and the package status manifest; no deliverable should be assumed complete after a failure.
+- Include the relevant log and `package_status.json` when reporting a reproducible issue. Do not include proprietary IFC data unless permitted.
+
+## License
+
+See `LICENSE`. DIALux evo and its assemblies remain subject to their own license terms.

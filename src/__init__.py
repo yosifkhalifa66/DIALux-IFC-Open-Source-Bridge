@@ -1,4 +1,3 @@
-"""
-DIALux IFC Bridge Package
-"""
-__version__ = "1.0.0"
+"""DIALux IFC Bridge package."""
+
+__version__ = "2.5.0"
